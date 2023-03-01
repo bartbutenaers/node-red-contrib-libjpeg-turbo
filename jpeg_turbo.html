@@ -1,0 +1,183 @@
+<!--
+  Copyright 2023, Bart Butenaers
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<script type="text/javascript">
+    RED.nodes.registerType('jpeg-turbo', {
+        category: 'image processing',
+        defaults: {
+            name: { value: "" },
+            action: { value: "decode"},
+            image: { value: "payload", required: true},
+            imageWidth: { value: "width", required: true },
+            imageWidthType: { value: "msg" },
+            imageHeight: { value: "height", required: true },
+            imageHeightType: { value: "msg" },
+            result: { value: "payload", required: true },
+            format: { value: "rgb" },
+            quality: { value: 80 },
+            subSampling: { value: "420" }
+        },
+        inputs: 1,
+        outputs: 1,
+        paletteLabel: "turbo jpeg",
+        color: "#ED782F",
+        icon: "font-awesome/fa-window-restore",
+        label: function() {
+            return this.name || this.action + " jpeg" || "jpeg turbo";
+        },
+        oneditprepare: function() {
+            var node = this;
+
+            // Show the imageRaw value in a typedinput element (dropdown with only 'msg')
+            $("#node-input-image").typedInput({
+                default: 'msg',
+                typeField: $("#node-input-imageType"),
+                types:['msg']
+            });
+            //$("#node-input-imageRaw").typedInput('type', 'msg');
+
+            // Show the imageWidth value in a typedinput element (dropdown with only 'msg' and optionally 'num')
+            $("#node-input-imageWidth").typedInput({
+                default: 'msg',
+                typeField: $("#node-input-imageWidthType"),
+                types:['msg', 'num']
+            });
+            $("#node-input-imageWidth").typedInput('type',node.imageWidthType);
+
+            // Show the imageHeight value in a typedinput element (dropdown with only 'msg' and optionally 'num')
+            $("#node-input-imageHeight").typedInput({
+                default: 'msg',
+                typeField: $("#node-input-imageHeightType"),
+                types:['msg', 'num']
+            });
+            $("#node-input-imageHeight").typedInput('type',node.imageHeightType);
+
+            // Show the result value in a typedinput element (dropdown with only 'msg')
+            $("#node-input-result").typedInput({
+                default: 'msg',
+                //typeField: $("#node-input-imageJpegType"),
+                types:['msg']
+            });
+            //$("#node-input-imageJpeg").typedInput('type',node.imageJpegType);
+
+            $("#node-input-action").change(function() {
+                if (this.value == "decode") {
+                    // When decoding a jpeg input image, that jpeg image already contains the width and height.
+                    // In this case the imageWidth field is used to specify in which output messsage property the width needs to be send.
+                    $("#node-input-imageWidth").typedInput('types',['msg']);
+                    $("#node-input-imageHeight").typedInput('types',['msg']);
+
+                    $(".decoding-row").show();
+                    $(".encoding-row").hide();
+                }
+                else {
+                    // When encoding a raw input image, the encoder needs to know the width and height of that image.
+                    // Otherwise the encoder cannot interpret the raw image buffer.
+                    // In this case it is required to specify in which output messsage property the width needs to be send.
+                    // Or you can specify hardcoded width and height numeric values.
+                    $("#node-input-imageWidth").typedInput('types',['msg', 'num']);
+                    $("#node-input-imageHeight").typedInput('types',['msg', 'num']);
+
+                    $(".decoding-row").hide();
+                    $(".encoding-row").show();
+                }                
+            });
+            $("#node-input-action").change();
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="jpeg-turbo">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    </br>
+    <div class="form-row">
+        <label for="node-input-action"><i class="fa fa-exchange"></i> Action</label>
+        <select id="node-input-action" style="width: 70%">
+            <option value="decode">Decode JPEG</option>
+            <option value="encode">Encode JPEG</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label style="padding-top: 8px" for="node-input-image"><i class="fa fa-sign-in"></i> Image</label>
+        <input type="text" id="node-input-image" style="width:70%">
+    </div>
+    <div class="form-row encoding-row">
+        <label style="padding-top: 8px" for="node-input-imageWidth"><i class="fa fa-arrows-h"></i> Width</label>
+        <input type="text" id="node-input-imageWidth" style="width:70%">
+        <input type="hidden" id="node-input-imageWidthType">
+    </div>
+    <div class="form-row encoding-row">
+        <label style="padding-top: 8px" for="node-input-imageHeight"><i class="fa fa-arrows-v"></i> Height</label>
+        <input type="text" id="node-input-imageHeight" style="width:70%">
+        <input type="hidden" id="node-input-imageHeightType">
+    </div>
+    <div class="form-row decoding-row">
+        <label for="node-input-format"><i class="fa fa-paint-brush"></i> Format</label>
+        <select id="node-input-format" style="width: 70%">
+            <option value="abgr">ABGR</option>
+            <option value="argb">ARGB</option>
+            <option value="bgra">BGRA</option>
+            <option value="bgrx">BGRX</option>
+            <option value="gray">GRAY</option>
+            <option value="rgba">RGBA</option>
+            <option value="rgbx">RGBX</option>
+            <option value="rgbr">RGBR</option>
+            <option value="xbgr">XBGR</option>
+            <option value="xrgb">XRGB</option>
+            <option value="bgr">BGR</option>
+            <option value="rgb">RGB</option>
+        </select>
+    </div>
+    <div class="form-row encoding-row">
+        <label for="node-input-subSampling"><i class="fa fa-th"></i> Sampling</label>
+        <select id="node-input-subSampling" style="width: 70%">
+            <option value="420">4:2:0</option>
+            <option value="422">4:2:2</option>
+            <option value="440">4:4:0</option>
+            <option value="444">4:4:4</option>
+            <option value="gray">GRAY</option>
+        </select>
+    </div>
+    <div class="form-row encoding-row">
+        <label for="node-input-quality"><i class="fa fa-line-chart"></i> Quality</label>
+        <input id="node-input-quality" type="number" min="0" max="100">
+    </div>
+    <div class="form-row">
+        <label style="padding-top: 8px" for="node-input-result"><i class="fa fa-sign-out"></i> Result</label>
+        <input type="text" id="node-input-result" style="width:70%">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="jpeg-turbo">
+    <p>A Node-RED node for fast encoding and decoding jpeg images, via the <a href="https://libjpeg-turbo.org/" target="_blank">libjpeg-turbo</a> C library.</p>
+    <p><strong>Action:</strong><br/>
+    Specify which action needs to be executed on the input images:
+    <ul>
+        <li><i>Decoding:</i> Decode the jpeg input image buffer to a raw image buffer.</li>
+        <li><i>Encoding:</i> Encode the raw input image buffer to a jpeg image buffer.</li>
+        </ul></p>
+    <p><strong>Width:</strong><br/>
+    In case of encoding, specify the width of the raw input image.  That width can be a fixed number, or be set dynamically via an input message field.</p>
+    <p><strong>Height:</strong><br/>
+    In case of encoding, specify the height of the raw input image.  That height can be a fixed number, or be set dynamically via an input message field.</p>
+    <p><strong>Sampling:</strong><br/>
+    In case of encoding, specify the chroma sub-sampling method.</p> 
+    <p><strong>Quality:</strong><br/>
+    In case of encoding, specify the preferred quality of the jpeg output image (as a number between 0 and 100).</p>
+    <p><strong>Format:</strong><br/>
+    In case of decoding, specify the preferred format of the raw output image pixels.</p>
+    <p><strong>Result:</strong><br/>
+    Specify in which output message field the result data needs to be sent.</p>
+</script>
