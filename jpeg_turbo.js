@@ -30,6 +30,9 @@ module.exports = function (RED) {
         this.result          = config.result;
 
         var node = this;
+        
+        // Note that the jpeg-turbo npm module does not contain constants for all formats...
+        node.formats = ["RGB", "BGR", "2", "BGRX", "XBGR", "XRGB", "GRAY", "7", "BGRA", "ABGR", "ARGB"];
 
         node.on("input", function(msg) {
             let inputImageBuffer, result, imageWidth, imageHeight;
@@ -118,6 +121,10 @@ module.exports = function (RED) {
 
                     // Decode the jpeg input image
                     result = turbo.decompressSync(inputImageBuffer, decodingOptions);
+                    
+                    // Map the numeric format to a label
+                    result.format = node.formats[result.format];
+                    
                     break;
             }
 
